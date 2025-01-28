@@ -8,6 +8,7 @@ import os
 import subprocess
 import warnings
 from callib import CalendarLib
+import datetime
 
 warnings.filterwarnings("ignore", category=LineBotSdkDeprecatedIn30)
 
@@ -56,22 +57,65 @@ def handle_message(event):
                 TextSendMessage(text="タスクの名前を入力してください")
             )
         elif(message == "タスクリストを表示"):
-            # 自動応答のメッセージを返す（受け取ったJSON形式のデータをそのまま表示する）
+            tasks = Clib.get_tasks()
+            if tasks:
+                task_list = "\n".join([task['summary'] for task in tasks])
+                response_text = f"タスクリスト:\n{task_list}"
+            else:
+                response_text = "タスクリストは空です。"
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text="タスクの名前を入力してください")
+                TextSendMessage(text=response_text)
             )
         elif(message == "空き時間を算出"):
-            # 自動応答のメッセージを返す（受け取ったJSON形式のデータをそのまま表示する）
+            events = Clib.get_today_events()
+            if events:
+                free_times = []  # 空き時間を格納するリスト
+                now = datetime.datetime.now()
+                today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                today_end = today_start + datetime.timedelta(days=1)
+
+                # 予定を開始時間でソート
+                events.sort(key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
+
+                # 最初の空き時間を計算
+                last_end_time = today_start
+
+                for event in events:
+                    start_time = event['start'].get('dateTime', event['start'].get('date'))
+                    end_time = event['end'].get('dateTime', event['end'].get('date'))
+
+                    # 空き時間がある場合
+                    if last_end_time < start_time:
+                        free_times.append(f"{last_end_time.strftime('%H:%M')} - {datetime.datetime.fromisoformat(start_time).strftime('%H:%M')}")
+
+                    # 最後の予定の終了時間を更新
+                    last_end_time = max(last_end_time, datetime.datetime.fromisoformat(end_time))
+
+                # 最後の予定の後の空き時間を追加
+                if last_end_time < today_end:
+                    free_times.append(f"{last_end_time.strftime('%H:%M')} - {today_end.strftime('%H:%M')}")
+
+                if free_times:
+                    response_text = "空き時間:\n" + "\n".join(free_times)
+                else:
+                    response_text = "空き時間はありません。"
+            else:
+                response_text = "今日の予定はありません。"
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text="タスクの名前を入力してください")
+                TextSendMessage(text=response_text)
             )
         elif(message == "スケジュール"):
-            # 自動応答のメッセージを返す（受け取ったJSON形式のデータをそのまま表示する）
+            events = Clib.get_today_events()
+            if events:
+                schedule_list = "\n".join([f"{event['start'].get('dateTime', event['start'].get('date'))}: {event['summary']}" for event in events])
+                response_text = f"今日のスケジュール:\n{schedule_list}"
+            else:
+                response_text = "今日のスケジュールはありません。"
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text="タスクの名前を入力してください")
+                TextSendMessage(text=response_text)
             )
         else:
             # 自動応答のメッセージを返す（受け取ったJSON形式のデータをそのまま表示する）

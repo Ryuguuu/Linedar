@@ -67,7 +67,7 @@ class CalendarLib:
         try:
             events_result = self.calendar_service.events().list(
                 calendarId=self.calendar_id,
-                q=f"{title} #task"
+                q=f"{title}"
             ).execute()
             
             for event in events_result.get('items', []):
