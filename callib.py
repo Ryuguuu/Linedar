@@ -34,10 +34,10 @@ class CalendarLib:
         try:
             events_result = self.calendar_service.events().list(
                 calendarId=self.calendar_id,
-                q='#task',  # タスクを識別するためのタグ
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
+
             return events_result.get('items', [])
         except Exception as e:
             print(f"タスク取得エラー: {str(e)}")
